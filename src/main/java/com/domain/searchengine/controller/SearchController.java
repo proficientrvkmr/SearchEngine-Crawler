@@ -1,5 +1,6 @@
 package com.domain.searchengine.controller;
 
+import com.domain.searchengine.model.SearchResult;
 import com.domain.searchengine.service.SearchService;
 import io.swagger.annotations.Api;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,7 +16,7 @@ public class SearchController {
     private SearchService searchService;
 
     @PostMapping("search")
-    public Object searchKey(@RequestBody String keyword) {
+    public SearchResult searchKey(@RequestBody String keyword) {
 
         return searchService.searchKey(keyword);
     }

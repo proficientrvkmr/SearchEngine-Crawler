@@ -10,6 +10,7 @@ import com.domain.searchengine.persistence.entity.HtmlLinkIndex;
 import com.domain.searchengine.persistence.entity.KeywordIndex;
 import com.domain.searchengine.util.HtmlLinkExtractor;
 import com.domain.searchengine.util.KeywordsExtractor;
+import com.domain.searchengine.util.PageTitleExtractor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -42,6 +43,9 @@ public class IndexServiceImpl implements IndexService {
     @Autowired
     private KeywordsExtractor keywordsExtractor;
 
+    @Autowired
+    private PageTitleExtractor pageTitleExtractor;
+
     @Override
     public IndexResult indexingOfPage(String url) {
 
@@ -66,7 +70,7 @@ public class IndexServiceImpl implements IndexService {
 
         HtmlContentIndex htmlContentIndexEnity = HtmlContentIndex.builder()
                 .url(url)
-                .htmlContent(html)
+                .pageTitle(pageTitleExtractor.grabPageTitle(html))
                 .build();
 
         HtmlContentIndex htmlContent = htmlContentRepository.save(htmlContentIndexEnity);

@@ -21,7 +21,7 @@ public class KeywordsExtractor {
                     word = word.toLowerCase();
                     if (keywordCountMap.containsKey(word)) {
                         int count = keywordCountMap.get(word);
-                        keywordCountMap.put(word, count++);
+                        keywordCountMap.put(word, ++count);
                     } else {
                         keywordCountMap.put(word, 1);
                     }

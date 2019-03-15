@@ -1,6 +1,8 @@
 package com.domain.searchengine.service;
 
+import com.domain.searchengine.model.SearchResult;
+
 public interface SearchService {
 
-    Object searchKey(String keyword);
+    SearchResult searchKey(String keyword);
 }
