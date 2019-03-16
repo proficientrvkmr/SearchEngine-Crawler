@@ -85,6 +85,11 @@ public class IndexServiceImpl implements IndexService {
     }
 
     private void doIndexingForSubLinkPage(String url, int timesToCall, long totalKeywordAdded, long totalPageAdded) throws MalformedURLException, URISyntaxException {
+        HtmlContentIndex isHtmlContentSaved = htmlContentRepository.findByUrl(url);
+        if (isHtmlContentSaved != null) {
+            return;
+        }
+
         String mainHTML = getHtmlContent(url);
         HtmlContentIndex htmlContent = saveHtmlContent(url, mainHTML);
         ArrayList<KeywordIndex> keywordOccurrences = renderAndSaveKeywordOccurence(htmlContent.getId(), mainHTML);
