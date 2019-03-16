@@ -18,11 +18,13 @@ public class PageTitleExtractor {
     }
 
     public String grabPageTitle(final String htmlContent) {
-        String pageTitle = null;
+        String pageTitle = "No_Title_Found";
         matcherTag = patternTag.matcher(htmlContent);
 
         if (matcherTag.find()) {
             pageTitle = matcherTag.group(1);
+        } else {
+            System.err.println("No Title Found");
         }
 
         return pageTitle;

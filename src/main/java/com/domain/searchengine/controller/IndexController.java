@@ -10,6 +10,9 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+
 @Api
 @RestController("/engine/")
 public class IndexController {
@@ -19,7 +22,7 @@ public class IndexController {
 
     @PostMapping("index")
     @ResponseStatus(HttpStatus.OK)
-    public IndexResult indexingOfPage(@RequestBody String body) {
+    public IndexResult indexingOfPage(@RequestBody String body) throws MalformedURLException, URISyntaxException {
         return indexService.indexingOfPage(body);
     }
 }

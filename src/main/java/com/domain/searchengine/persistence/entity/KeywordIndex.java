@@ -31,7 +31,7 @@ public class KeywordIndex {
     private String keyword;
 
     @Column
-    private int keywordOccurence;
+    private int keywordOccurrence;
 
     @Column
     @Type(type = "uuid-char")

@@ -8,4 +8,5 @@ import java.util.UUID;
 
 @Repository
 public interface HtmlContentRepository extends CrudRepository<HtmlContentIndex, UUID> {
+    HtmlContentIndex findByUrl(String url);
 }

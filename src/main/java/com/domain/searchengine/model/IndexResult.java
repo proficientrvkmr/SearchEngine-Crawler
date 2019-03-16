@@ -7,7 +7,7 @@ import lombok.Data;
 @Builder
 public class IndexResult {
 
-    private int pageAdded;
-    private int keywordsAdded;
+    private long pageAdded;
+    private long keywordsAdded;
 
 }

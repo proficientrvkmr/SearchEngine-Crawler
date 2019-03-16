@@ -11,11 +11,15 @@ import com.domain.searchengine.persistence.entity.KeywordIndex;
 import com.domain.searchengine.util.HtmlLinkExtractor;
 import com.domain.searchengine.util.KeywordsExtractor;
 import com.domain.searchengine.util.PageTitleExtractor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,8 +27,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class IndexServiceImpl implements IndexService {
 
+    private static final int DEEP_LEVEL = 3;
     @Autowired
     private RestTemplate restTemplate;
 
@@ -47,22 +53,62 @@ public class IndexServiceImpl implements IndexService {
     private PageTitleExtractor pageTitleExtractor;
 
     @Override
-    public IndexResult indexingOfPage(String url) {
+    public IndexResult indexingOfPage(String url) throws MalformedURLException, URISyntaxException {
+
+        long totalPageAdded = 0;
+        long totalKeywordAdded = 0;
 
         String mainHTML = getHtmlContent(url);
         HtmlContentIndex htmlContent = saveHtmlContent(url, mainHTML);
-        ArrayList<KeywordIndex> keywordOccurences = renderAndSaveKeywordOccurence(htmlContent.getId(), mainHTML);
+        ArrayList<KeywordIndex> keywordOccurrences = renderAndSaveKeywordOccurence(htmlContent.getId(), mainHTML);
         ArrayList<HtmlLink> pageLinks = renderAndSaveHtmlOutgoingLinks(htmlContent.getId(), mainHTML);
 
+        totalKeywordAdded = keywordOccurrences.size();
+        totalPageAdded = pageLinks.size();
+
+        for (int i = 0; i < (pageLinks.size() > 5 ? 5 : pageLinks.size()); i++) {
+            HtmlLink htmlLink = pageLinks.get(i);
+            try {
+                doIndexingForSubLinkPage(htmlLink.getLink(), DEEP_LEVEL, totalKeywordAdded, totalPageAdded);
+
+            } catch (MalformedURLException | URISyntaxException e) {
+                log.error(e.getMessage());
+                continue;
+            }
+        }
+
         IndexResult result = IndexResult.builder()
-                .keywordsAdded(keywordOccurences.size())
-                .pageAdded(pageLinks.size())
+                .keywordsAdded(totalKeywordAdded)
+                .pageAdded(totalPageAdded)
                 .build();
         return result;
     }
 
-    private String getHtmlContent(String url) {
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity(url, String.class);
+    private void doIndexingForSubLinkPage(String url, int timesToCall, long totalKeywordAdded, long totalPageAdded) throws MalformedURLException, URISyntaxException {
+        String mainHTML = getHtmlContent(url);
+        HtmlContentIndex htmlContent = saveHtmlContent(url, mainHTML);
+        ArrayList<KeywordIndex> keywordOccurrences = renderAndSaveKeywordOccurence(htmlContent.getId(), mainHTML);
+        ArrayList<HtmlLink> pageLinks = renderAndSaveHtmlOutgoingLinks(htmlContent.getId(), mainHTML);
+
+        totalPageAdded = totalPageAdded + pageLinks.size();
+        totalKeywordAdded = totalKeywordAdded + keywordOccurrences.size();
+
+        if (--timesToCall > 0) {
+            for (int i = 0; i < (pageLinks.size() > 5 ? 5 : pageLinks.size()); i++) {
+                HtmlLink htmlLink = pageLinks.get(i);
+                try {
+                    doIndexingForSubLinkPage(htmlLink.getLink(), timesToCall, totalPageAdded, totalKeywordAdded);
+                } catch (MalformedURLException | URISyntaxException e) {
+                    log.error(e.getMessage());
+                    continue;
+                }
+            }
+        }
+    }
+
+    private String getHtmlContent(String url) throws MalformedURLException, URISyntaxException {
+        URL newUrl = new URL(url);
+        ResponseEntity<String> responseEntity = restTemplate.getForEntity(newUrl.toURI(), String.class);
         return responseEntity.getBody();
     }
 
@@ -73,7 +119,10 @@ public class IndexServiceImpl implements IndexService {
                 .pageTitle(pageTitleExtractor.grabPageTitle(html))
                 .build();
 
-        HtmlContentIndex htmlContent = htmlContentRepository.save(htmlContentIndexEnity);
+        HtmlContentIndex htmlContent = htmlContentRepository.findByUrl(url);
+        if (htmlContent == null) {
+            htmlContent = htmlContentRepository.save(htmlContentIndexEnity);
+        }
         return htmlContent;
     }
 
@@ -82,7 +131,7 @@ public class IndexServiceImpl implements IndexService {
 
         List<HtmlLinkIndex> possibleOutgoingLinks = links.stream().map(htmlLink -> HtmlLinkIndex.builder()
                 .link(htmlLink.getLink())
-                .linkText(htmlLink.getLinkText())
+                .linkText(htmlLink.getLinkText().length() > 255 ? htmlLink.getLinkText().substring(0, 250) : htmlLink.getLinkText())
                 .contentId(htmlContentId)
                 .build())
                 .collect(Collectors.toList());
@@ -90,15 +139,6 @@ public class IndexServiceImpl implements IndexService {
         htmlLinkRepository.saveAll(possibleOutgoingLinks);
         return links;
     }
-
-    private ArrayList<HtmlLink> renderOutgoingLinks(String subUrl, int deepLevel) {
-
-        ResponseEntity<String> responseEntity = restTemplate.getForEntity(subUrl, String.class);
-        String rawHTML = responseEntity.getBody();
-        ArrayList<HtmlLink> links = htmlLinkExtractor.grabHTMLLinks(rawHTML);
-        return links;
-    }
-
 
     private ArrayList<KeywordIndex> renderAndSaveKeywordOccurence(UUID id, String html) {
         ArrayList<KeywordIndex> keywordList = new ArrayList<>();
@@ -108,7 +148,7 @@ public class IndexServiceImpl implements IndexService {
 
             KeywordIndex keywordIndex = KeywordIndex.builder()
                     .keyword(keyword.getKey().toString())
-                    .keywordOccurence(Integer.parseInt(keyword.getValue().toString()))
+                    .keywordOccurrence(Integer.parseInt(keyword.getValue().toString()))
                     .contentId(id)
                     .build();
             keywordList.add(keywordIndex);

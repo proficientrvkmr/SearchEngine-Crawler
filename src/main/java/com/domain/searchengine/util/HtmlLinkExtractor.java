@@ -3,6 +3,8 @@ package com.domain.searchengine.util;
 import com.domain.searchengine.model.HtmlLink;
 import org.springframework.stereotype.Component;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -45,8 +47,16 @@ public class HtmlLinkExtractor {
 
                 String link = matcherLink.group(1); // link
                 HtmlLink obj = new HtmlLink();
-                obj.setLink(link);
-                obj.setLinkText(linkText);
+                try {
+                    link = link.replaceAll("^\"|\"$", ""); // trim double quotes
+                    link = link.replaceAll("^\'|\'$", ""); // trim single quotes
+                    URL linkURL = new URL(link);
+                    obj.setLink(String.valueOf(linkURL.getProtocol() + "://" + linkURL.getHost() + linkURL.getPath()));
+                } catch (MalformedURLException e) {
+                    System.err.println(e.getMessage());
+                    continue;
+                }
+                obj.setLinkText(linkText.replaceAll("^\"|\"$", ""));
 
                 result.add(obj);
 

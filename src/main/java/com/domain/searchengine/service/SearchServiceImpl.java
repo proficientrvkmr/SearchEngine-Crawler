@@ -47,7 +47,7 @@ public class SearchServiceImpl implements SearchService {
         return ResultData.builder()
                 .pageLink(htmlContentRepository.findById(keywordIndex.getContentId()).get().getUrl())
                 .pageTitle(htmlContentRepository.findById(keywordIndex.getContentId()).get().getPageTitle())
-                .wordOccurrence(keywordIndex.getKeywordOccurence())
+                .wordOccurrence(keywordIndex.getKeywordOccurrence())
                 .build();
     }
 }
